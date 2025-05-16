@@ -21,6 +21,7 @@ function Header({isLogin,setIsLogin}){
                     <Button color="inherit" onClick={()=>navigate('/my-page')}>My Page</Button>
                     <Button color="inherit" onClick={logout}>로그아웃</Button>
                     <Button color="inherit" onClick={()=>navigate('/')}>홈</Button>
+                    <Button color="inherit" onClick={()=>navigate('/chat-rooms')}>채팅</Button>
                     </>
                 ):(<>
                     <Button color="inherit" onClick={()=>navigate('/login')}>로그인</Button>

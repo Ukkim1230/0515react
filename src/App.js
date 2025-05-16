@@ -7,6 +7,8 @@ import Login from './components/Login';
 import Home from './components/Home';
 import MyPage from './components/MyPage';
 import { ToastContainer, Zoom } from 'react-toastify';
+import ChatRooms from './components/ChatRooms';
+import ChatRoom from './components/ChatRoom';
 function App() {
   const [isLogin,setIsLogin] = useState(false);
   useEffect(()=>{
@@ -34,6 +36,14 @@ function App() {
         <Route path='/my-page' element={
           isLogin?
         <MyPage/>:<Navigate to="/login"/>
+        }/>
+        <Route path='/chat-rooms' element={
+          isLogin?
+        <ChatRooms/>:<Navigate to="/login"/>
+        }/>
+        <Route path='/chat-room/:roomId' element={
+          isLogin?
+        <ChatRoom/>:<Navigate to="/login"/>
         }/>
       </Routes>
 
