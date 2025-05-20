@@ -14,9 +14,10 @@ function ChatRoom(){
     const [messages, setMessages] = useState([]); //주고 받은 메세지를 저장
     const [users, setUsers] = useState([]); // 방에 입장한 유저들 저장
     const [message,setMessage] = useState(''); //입력한 메세지
+    const [targetUser, setTargetUser] = useState({})//접속 유저 목록에서 선택한 유저
     const scrollRef = useRef(null);
 
-    const uiNum = localStorage.getItem('uiNum');
+    const uiNum = parseInt(localStorage.getItem('uiNum'));
     const uiName = localStorage.getItem('uiName');
     const enterMessage = {
         uiNum,
@@ -24,6 +25,13 @@ function ChatRoom(){
         roomId,
         name,
     };
+    const clickUser = (targetUser)=>{
+        if(targetUser.uiNum !== uiNum){
+            setTargetUser(targetUser);
+        }else{
+            setTargetUser(null);
+        }
+    }
     const disconnect = useCallback(()=>{
         if(stompClient.current?.connected){
             enterMessage.type = 'LEAVE';
@@ -41,11 +49,14 @@ function ChatRoom(){
                 const userList = JSON.parse(res.body);
                 setUsers(userList);
             });
-            stompClient.current.subscribe(`/topic/room/${roomId}`, (res)=>{
-                const chatMessage = JSON.parse(res.body);
+            stompClient.current.subscribe(`/topic/room/${roomId}/${uiNum}`,(res)=>{
                 setMessages((pre)=>{
-                    console.log(pre)
-                    return [...pre, chatMessage];
+                    return [...pre, JSON.parse(res.body)];
+                });
+            });
+            stompClient.current.subscribe(`/topic/room/${roomId}`, (res)=>{
+                setMessages((pre)=>{
+                    return [...pre, JSON.parse(res.body)];
                 });
             });
             enterMessage.type = 'JOIN'; //uiNum : 1, uiName : 홍길동 , roomId:4,type:
@@ -76,7 +87,10 @@ function ChatRoom(){
             type: 'CHAT',
             text : message
         }
-        console.log(chatMessage);
+        if(targetUser){
+            chatMessage.type = 'WHISPER'
+            chatMessage.targetUiNum = targetUser.uiNum;
+        }
         stompClient.current.send('/app/chat/message', {}, JSON.stringify(chatMessage));
         setMessage('');
     }
@@ -107,10 +121,20 @@ function ChatRoom(){
                                     {message.text}
                                 </Typography>
                                 </>
+                                ):message.type==='WHISPER'?(
+                                    <>
+                                    <Typography variant="caption" sx={{color:'blue'}}>
+                                        {message.uiName}
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {message.text}
+                                    </Typography>
+                                    </>
                                 ):(
                                 <Typography variant="caption" color="textSecondary">
                                     <b>{message.uiName}님이 {message.type==='LEAVE'?' 나가셨습니다.' : '입장하셨습니다.'}</b>
-                                </Typography>)}
+                                </Typography>
+                                )}
                             </Box>
                     ))}
                     <div ref={scrollRef}/>
@@ -120,9 +144,15 @@ function ChatRoom(){
                         <b>접속 유저({users.length})</b>
                     </Typography>
                 {users.map((user,idx)=>(
-                    <Box key={idx} sx={{mb:1}}>
-                        <Typography variant="caption" color="textSecondary">
-                            {user.uiName}
+                    <Box key={idx} sx={{mb:1, cursor:'pointer',
+                        bgcolor: targetUser?.uiNum===user.uiNum ? '#aabccc' : '',
+                        '&:hover':{
+                            bgcolor:'#aabbcc',
+                        }
+                    }}
+                    onClick={clickUser.bind(this,user)}>
+                        <Typography variant="body1" color="textSecondary" sx={{textAlign:'center',height:'25px'}}>
+                            <b>{parseInt(uiNum) === user.uiNum?`${user.uiName}(나)`:user.uiName}</b>
                         </Typography>
                     </Box>
                 ))}
@@ -131,7 +161,7 @@ function ChatRoom(){
             <form onSubmit={sendMessage}>
                 <Box sx={{display:'flex', p:1}}>
                     <TextField fullWidth value={message} onChange={(e) => {setMessage(e.target.value)}}
-                    placeholder="메세지 입력" variant="outlined"/>
+                    placeholder={targetUser?.uiName?`${targetUser.uiName}에게 귓속말`:'메세지 입력'} variant="outlined"/>
                     <Button type="submit" variant="contained">전송</Button>
                 </Box>
             </form>
